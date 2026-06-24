@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Diccionario aleatorio</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script defer src="app.js?v=4"></script>
+</head>
+<body>
+  <main class="container">
+    <h1>Diccionario aleatorio</h1>
+
+    <p class="info">La aplicación busca <code>train.csv</code> en la misma carpeta. Si no puede cargarlo, puedes subir el archivo manualmente.</p>
+
+    <div class="controls">
+      <button id="btn-buy-letter">Comprar letra</button>
+      <span id="count">Cargando…</span>
+      <div class="score-display">Puntuación: <span id="score">0</span></div>
+    </div>
+
+    <div class="word-row">
+      <label>Palabra:</label>
+      <div id="word" class="word">—</div>
+    </div>
+
+    <div class="definition-row">
+      <label>Definición:</label>
+      <div id="definition" class="definition-box"></div>
+    </div>
+
+    <div class="guess-row">
+      <label>Adivina la palabra:</label>
+      <div class="guess-controls">
+        <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
+        <button id="guess-submit">Probar</button>
+      </div>
+      <div id="attempts-info" class="attempts-info"></div>
+      <div id="guess-feedback" class="feedback">—</div>
+    </div>
+
+    <div class="fallback">
+      <label for="file-input">Si no se carga automáticamente, selecciona aquí tu <code>train.csv</code>:</label>
+      <input id="file-input" type="file" accept=".csv,text/csv">
+    </div>
+
+
+  </main>
+</body>
+</html>
