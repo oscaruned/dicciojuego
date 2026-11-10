@@ -92,6 +92,7 @@ document.addEventListener("aquarium-ready", () => PECERA.receive());
 // ---------- almacenamiento local ----------
 const LS_LEVEL = "pecera.level";
 const LS_RECORDS = "pecera.records";
+const LS_NARRATION = "pecera.narracion"; // "voz" = TTS de la app | "lector" = TalkBack/VoiceOver vía aria-live
 
 function lsGet(key, fallback) {
   try {
@@ -117,8 +118,29 @@ function saveRecords() {
 }
 
 // ---------- voz y sonido ----------
+// Modo "voz": la app habla con speechSynthesis (normal sin lector de pantalla).
+// Modo "lector": no se usa el TTS de la app (TalkBack lo tapa y lo mata al
+// compartir el mismo motor de Android); los avisos van a una región aria-live
+// y los pronuncia el lector de pantalla con su propia voz.
+function narrationMode() {
+  return lsGet(LS_NARRATION, "voz") === "lector" ? "lector" : "voz";
+}
+
+function announce(text) {
+  const el = document.getElementById("sr-announcer");
+  if (!el) return;
+  // técnica estándar: vaciar y rellenar después para que TalkBack
+  // registre el cambio de la región viva
+  el.textContent = "";
+  window.setTimeout(() => { el.textContent = text; }, 40);
+}
+
 function speak(text, interrupt = false) {
   try {
+    if (narrationMode() === "lector") {
+      announce(text);
+      return;
+    }
     if ("speechSynthesis" in window) {
       // las acciones interrumpen la síntesis anterior para no acumular mensajes
       if (interrupt) window.speechSynthesis.cancel();
@@ -665,6 +687,27 @@ function init() {
   $(SELECTORS.btnFinish).addEventListener("click", () => finishGame(false));
   $(SELECTORS.btnInstructions).addEventListener("click", openInstructions);
   $(SELECTORS.btnCloseInstructions).addEventListener("click", closeInstructions);
+
+  // conmutador de narración: voz de la app o lector de pantalla (TalkBack)
+  const btnNarration = document.getElementById("btn-narration");
+  const setNarrationLabel = () => {
+    btnNarration.textContent = narrationMode() === "lector"
+      ? "Narración: lector de pantalla"
+      : "Narración: voz de la app";
+  };
+  setNarrationLabel();
+  btnNarration.addEventListener("click", () => {
+    const nuevo = narrationMode() === "lector" ? "voz" : "lector";
+    lsSet(LS_NARRATION, nuevo);
+    if (nuevo === "voz") {
+      try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) { /* noop */ }
+    }
+    setNarrationLabel();
+    // feedback por el canal activo
+    speak(nuevo === "lector"
+      ? "Modo lector de pantalla activado. Los avisos los dirá tu lector."
+      : "Modo voz de la app activado.");
+  });
   $(SELECTORS.btnNewGame).addEventListener("click", () => {
     hideOverlay(SELECTORS.overlayResult);
     newGame(true);
