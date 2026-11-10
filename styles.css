@@ -1,0 +1,267 @@
+/* styles.css - Pecera de palabras */
+:root {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --accent: #2563eb;
+  --accent-dark: #1d4ed8;
+  --danger: #dc2626;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --card: #ffffff;
+  --line: #e2e8f0;
+}
+* { box-sizing: border-box; }
+
+body {
+  background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 50%, #cffafe 100%);
+  margin: 0;
+  height: 100vh;              /* reserva para navegadores sin dvh */
+  height: 100dvh;
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  overflow: hidden;
+  color: var(--ink);
+}
+
+/* ===== reparto juego / pecera (todo responsivo) =====
+   Apaisado: juego a la izquierda (50 %), pecera a la derecha (50 %), altura completa.
+   Vertical: juego arriba, pecera debajo; ancho 100 % y altura a partes iguales. */
+@media (orientation: landscape) {
+  body { grid-template: minmax(0, 1fr) / minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (orientation: portrait) {
+  body { grid-template: minmax(0, 1fr) minmax(0, 1fr) / minmax(0, 1fr); }
+}
+
+.container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;             /* centrado dentro de su celda */
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;           /* el juego hace scroll dentro de su mitad */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 12px 28px;
+}
+
+.pecera-slot {
+  position: relative;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 16px 14px;
+  background: #ffffffdb;
+  border: 1px solid #b7dcee;
+  border-radius: 18px;
+  box-shadow: 0 18px 40px rgba(10, 60, 90, .12);
+}
+
+/* score superpuesto sobre el acuario */
+.aquarium-score {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  pointer-events: none;
+}
+.aquarium-score .label {
+  font-size: clamp(11px, 2vh, 14px);
+  letter-spacing: 2px;
+  color: #4b7d99;
+  font-weight: 700;
+}
+#pecera-score {
+  font-size: clamp(28px, 6vh, 46px);
+  font-weight: 800;
+  color: #0d5f8c;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 0 #ffffff;
+}
+
+/* widget del acuario: el SVG escala con su contenedor */
+.aquarium-root { flex: 1; min-height: 0; }
+.aquarium-widget, .aquarium-widget .scene { width: 100%; height: 100%; min-height: 0; }
+.aquarium-widget .scene { border-radius: 14px; overflow: hidden; }
+.aquarium-widget svg { width: 100%; height: 100%; display: block; }
+
+/* ===== animación de entrada de la pecera =====
+   Al empezar partida nueva la pecera arranca cubriendo la ventana completa
+   (position fixed) y es el app.js quien la anima con top/left/width/height
+   hasta su hueco en la rejilla durante PECERA_INTRO_SECONDS segundos. */
+.pecera-slot.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 40;                 /* por debajo de los overlays de diálogo (50) */
+  transition:
+    top 5s cubic-bezier(.45, .05, .25, 1),
+    left 5s cubic-bezier(.45, .05, .25, 1),
+    width 5s cubic-bezier(.45, .05, .25, 1),
+    height 5s cubic-bezier(.45, .05, .25, 1);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+h1 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: 1px;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
+}
+.panel-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+/* desplegable de niveles */
+.level-row select {
+  padding: 9px 12px;
+  font-size: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--ink);
+  cursor: pointer;
+  min-width: 200px;
+}
+.level-row select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+
+/* estado */
+.stats-row {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.score-display { font-weight: 700; font-size: 20px; color: var(--accent-dark); }
+.best-display  { font-weight: 600; color: #b45309; }
+.pool-display  { color: var(--muted); align-self: center; }
+
+.controls { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* botones */
+button {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity .15s ease, transform .05s ease;
+}
+button:active { transform: translateY(1px); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-dark); }
+.btn-danger  { background: var(--danger); color: #fff; }
+.btn-ghost   {
+  background: transparent;
+  color: var(--accent-dark);
+  border: 1px solid var(--line);
+}
+.btn-ghost:hover { border-color: var(--accent); }
+.btn-big { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
+
+/* palabra */
+.word-panel label,
+.guess-panel label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+#word {
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: .25em;
+  padding: 8px 12px;
+  background: #f0f4ff;
+  border-radius: 8px;
+  display: inline-block;
+  min-height: 1.6em;
+  margin-bottom: 12px;
+}
+#definition {
+  min-height: 72px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fafafa;
+  color: #334155;
+  line-height: 1.5;
+}
+
+/* adivinanza */
+.guess-controls { display: flex; gap: 8px; flex-wrap: wrap; }
+#guess-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+}
+#guess-input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.attempts-info { margin-top: 8px; font-size: 14px; color: var(--muted); min-height: 1.2em; }
+.feedback      { margin-top: 6px; font-size: 14px; color: #475569; min-height: 1.2em; }
+.status-line   { margin-top: 8px; font-size: 12px; color: #94a3b8; }
+
+/* fallback carga manual */
+.fallback {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+
+/* overlays */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 20px;
+}
+.dialog {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 24px;
+  width: min(560px, 94vw);
+  max-height: 88vh;
+  overflow: auto;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, .35);
+}
+.dialog h2 { margin: 0 0 14px; font-size: 22px; }
+.rules { margin: 0; padding-left: 18px; }
+.rules li { margin-bottom: 9px; line-height: 1.45; font-size: 14.5px; }
+#result-body p { margin: 8px 0; font-size: 16px; }
+#result-body strong { font-size: 22px; color: var(--accent-dark); }
+.new-record { color: #b45309; font-weight: 600; }
+
+.hidden { display: none; }
