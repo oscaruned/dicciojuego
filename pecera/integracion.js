@@ -27,9 +27,15 @@ function initAquarium() {
   const aq = new Aquarium(svgRoot, els);
   aq.start();
 
-  // El juego termina la partida por su cuenta ("Finalizar partida") sin que el
+  // el juego termina la partida por su cuenta ("Finalizar partida") sin que el
   // pez muera ahogado; en ese caso hay que detener el reloj de inactividad de
   // la pecera a mano (sin muerte del pez, la API original no lo para).
+  aq.on('gameover', (score) => {
+    if (window.aquarium && window.aquarium._gameoverHandler) {
+      window.aquarium._gameoverHandler(score);
+      window.aquarium._gameoverHandler = null;
+    }
+  });
   aq.stopIdle = () => {
     aq.idleRunning = false;
     aq._emit('idleTick', { elapsed: -1, max: aq.idleMax });
@@ -43,6 +49,12 @@ function initAquarium() {
     happy: () => aq.fish.happy(),              // reacciones puntuales del pez
     scared: () => aq.fish.scared(),
     audio: aq.audio,                           // setVolume / setMuted
+    // aviso cuando la animación de muerte del pez ha terminado (peces caen,
+    // ojos en X y desvanecimiento) para mostrar el resumen entonces; el
+    // callback se reemplaza, no se acumulan oyentes entre partidas
+    onGameover: (fn) => {
+      aq._gameoverHandler = fn;
+    },
   };
   window.aquariumInstance = aq;
 

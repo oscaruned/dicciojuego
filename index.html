@@ -6,7 +6,7 @@
   <title>Pecera de palabras</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="app.js?v=15"></script>
+  <script defer src="app.js?v=16"></script>
 </head>
 <body class="start-mode">
   <main class="container game-side">
@@ -83,8 +83,7 @@
   <!-- barra de opciones y Nueva partida: visible en el arranque y en el
        fin de partida; la dificultad se define antes de una partida nueva -->
   <div id="start-bar" class="start-bar">
-    <button id="btn-instructions" class="btn-ghost">Instrucciones</button>
-    <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
+    <button id="btn-new-game" class="btn-primary">Nueva partida</button>
     <label for="level-select">Nivel:</label>
     <select id="level-select" aria-label="Nivel de dificultad">
       <option value="1">Básico</option>
@@ -93,7 +92,8 @@
       <option value="4">Difícil</option>
       <option value="5">Muy difícil</option>
     </select>
-    <button id="btn-new-game" class="btn-primary">Nueva partida</button>
+    <button id="btn-instructions" class="btn-ghost">Instrucciones</button>
+    <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
   </div>
 
   <!-- región oculta para lectores de pantalla (TalkBack, VoiceOver…):
@@ -106,6 +106,6 @@
     <div id="aquarium-root" class="aquarium-root"></div>
   </section>
 
-  <script type="module" src="pecera/integracion.js?v=1"></script>
+  <script type="module" src="pecera/integracion.js?v=2"></script>
 </body>
 </html>

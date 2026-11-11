@@ -455,7 +455,9 @@ function finishGame(auto) {
   PECERA.run((aq) => {
     if (aq.stopIdle) aq.stopIdle();
     if (!auto && aq.scared) aq.scared();
-    if (aq.audio && aq.audio.setMuted) aq.audio.setMuted(true); // silenciar el ambiente
+    // en muerte automática el sonido se silencia al mostrar el resumen, para
+    // que la escena de la muerte suene mientras dura
+    if (!auto && aq.audio && aq.audio.setMuted) aq.audio.setMuted(true);
   });
 
   const finalScore = STATE.score;
@@ -489,8 +491,30 @@ function finishGame(auto) {
   $(SELECTORS.word).textContent = "—";
   $(SELECTORS.guessFeedback).textContent = "";
   $(SELECTORS.attemptsInfo).textContent = "";
-  $(SELECTORS.overlayResult).classList.remove("hidden");
-  mountStartBar(true); // «Nueva partida» + nivel, dentro del diálogo del resumen
+
+  if (auto) {
+    // muerte por −20: dejar ver cómo muere el pez; el resumen se muestra
+    // cuando la pecera avisa del fin de su animación (unos 3,4 s), con
+    // temporizador de respaldo si la API no está disponible
+    let shown = false;
+    let aqForMute = null;
+    const show = () => {
+      if (shown) return;
+      shown = true;
+      if (aqForMute && aqForMute.audio && aqForMute.audio.setMuted) aqForMute.audio.setMuted(true);
+      $(SELECTORS.overlayResult).classList.remove("hidden");
+      mountStartBar(true);
+    };
+    clearTimeout(STATE.resultDelayTimer);
+    STATE.resultDelayTimer = setTimeout(show, 4500); // respaldo
+    PECERA.run((aq) => {
+      aqForMute = aq;
+      if (aq.onGameover) aq.onGameover(show);
+    });
+  } else {
+    $(SELECTORS.overlayResult).classList.remove("hidden");
+    mountStartBar(true); // «Nueva partida» + nivel, dentro del diálogo del resumen
+  }
 }
 
 // ---------- pasapalabra ----------

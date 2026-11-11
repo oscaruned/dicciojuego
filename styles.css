@@ -310,6 +310,9 @@ body.dialog-open .start-bar { display: none; }
   transform: translateX(-50%);
   z-index: 60;
   display: flex;
+  flex-wrap: wrap;              /* en vertical estrecho salta a dos filas */
+  justify-content: center;
+  max-width: calc(100% - 20px); /* nunca se sale de la pantalla */
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
