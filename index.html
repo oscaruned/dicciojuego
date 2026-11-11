@@ -6,7 +6,7 @@
   <title>Pecera de palabras</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="app.js?v=12"></script>
+  <script defer src="app.js?v=13"></script>
 </head>
 <body class="start-mode">
   <main class="container game-side">
@@ -40,7 +40,7 @@
       <label for="guess-input">Adivina la palabra:</label>
       <div class="guess-controls">
         <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
-        <button id="btn-mic" class="btn-ghost" aria-label="Diccionar la palabra" title="Diccionar la palabra">🎤</button>
+        <button id="btn-mic" class="btn-ghost" aria-label="Dictar la palabra por voz" title="Dictar la palabra por voz">Micrófono</button>
         <button id="guess-submit" class="btn-primary">Probar</button>
       </div>
       <div id="attempts-info" class="attempts-info"></div>
@@ -61,7 +61,7 @@
         <li><strong>Palabra oculta:</strong> se muestra una palabra tapada letra a letra (<code>_ _ _</code>) junto a su definición en español. Tienes tantos intentos como letras tiene la palabra.</li>
         <li><strong>Comprar letra</strong> (-2 puntos): revela la siguiente letra oculta y devuelve el temporizador al minuto entero.</li>
         <li><strong>Pasapalabra</strong>: resta tantos puntos como letras tenga la palabra pedida y pasa a otra definición.</li>
-        <li><strong>Micrófono 🎤</strong>: junto a la casilla de respuesta; al pulsarlo, lo que pronuncies sustituye por completo el contenido de la casilla.</li>
+        <li><strong>Micrófono</strong>: junto a la casilla de respuesta; al pulsarlo, lo que pronuncies sustituye el contenido de la casilla y se envía automáticamente.</li>
         <li><strong>Aciertos</strong>: si adivinas la palabra, sumas el número total de letras (una palabra de 7 letras vale +7 puntos).</li>
         <li><strong>Errores</strong>: cada respuesta fallida resta 1 punto.</li>
         <li><strong>Tiempo</strong>: cada minuto sin responder resta 1 punto. En los últimos 10 segundos del minuto oirás pitidos en escala ascendente.</li>

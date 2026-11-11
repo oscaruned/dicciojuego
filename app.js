@@ -142,16 +142,32 @@ function speak(text, interrupt = false) {
       return;
     }
     if ("speechSynthesis" in window) {
-      // las acciones interrumpen la síntesis anterior para no acumular mensajes
-      if (interrupt) window.speechSynthesis.cancel();
+      const synth = window.speechSynthesis;
+      if (interrupt) synth.cancel();
+      if (synth.paused) synth.resume(); // Chrome lo deja pausado al volver de segundo plano
       const u = new SpeechSynthesisUtterance(text);
       u.lang = "es-ES";
       u.rate = 1.0;
-      window.speechSynthesis.speak(u);
+      synth.speak(u);
     }
   } catch (e) {
     console.warn("TTS no disponible:", e);
   }
+}
+
+// Chrome/Android exigen que la síntesis se «desbloquee» dentro del gesto del
+// usuario; en la primera palabra tras cargar la página podía quedar muda.
+function unlockTTS() {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    const synth = window.speechSynthesis;
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0; // inaudible: solo activa el motor
+    synth.cancel();
+    synth.speak(u);
+    synth.cancel();
+    if (synth.paused) synth.resume();
+  } catch (e) { /* sin TTS: sin efecto */ }
 }
 
 function beep(freq, duration = 0.14) {
@@ -428,7 +444,6 @@ function finishGame(auto) {
   setControlsEnabled(false, false, false);
   document.body.classList.remove("playing");
   document.body.classList.add("game-over");
-
   // la pecera para su reloj de inactividad; si la partida la cierra el
   // jugador (y no la muerte por −20) el pez se asusta pero no muere
   PECERA.run((aq) => {
@@ -468,6 +483,7 @@ function finishGame(auto) {
   $(SELECTORS.guessFeedback).textContent = "";
   $(SELECTORS.attemptsInfo).textContent = "";
   $(SELECTORS.overlayResult).classList.remove("hidden");
+  mountStartBar(true); // «Nueva partida» + nivel, dentro del diálogo del resumen
 }
 
 // ---------- pasapalabra ----------
@@ -522,7 +538,7 @@ function setupMic() {
         const said = (ev.results[0][0].transcript || "").trim();
         if (said) {
           input.value = said; // sustituye por completo lo que hubiera
-          input.focus();
+          handleGuess(); // envío automático: lo dictado se comprueba al instante
         }
       };
       rec.onerror = (ev) => {
@@ -562,6 +578,8 @@ function setupFullscreen() {
     }
   };
   window.addEventListener("pointerdown", retry, { once: true });
+  // primer gesto: desbloquear también la síntesis de voz
+  window.addEventListener("pointerdown", unlockTTS, { once: true });
 }
 
 // ---------- acciones del juego ----------
@@ -649,8 +667,9 @@ function handleGuess() {
     if (remainingAttempts > 0 && STATE.gameActive) {
       feedback.textContent = "No es correcto. Inténtalo otra vez. -1 punto";
       $(SELECTORS.attemptsInfo).textContent = `Te quedan ${remainingAttempts} intento(s)`;
+      // se conservan las letras compradas hasta ahora en el cuadro de edición
+      input.value = STATE.revealedLetters;
       input.disabled = false;
-      input.value = "";
       input.focus();
     } else {
       feedback.textContent =
@@ -679,8 +698,20 @@ function selectLevel(n) {
 }
 
 // ---------- arranque de partida desde la barra ----------
+// En móvil, una barra fija puede quedar tapada por el teclado o el diálogo;
+// por eso, en el fin de partida la barra se traslada DENTRO del diálogo.
+function mountStartBar(inDialog) {
+  const bar = document.getElementById("start-bar");
+  const dlg = document.querySelector("#overlay-result .dialog");
+  if (!bar || !dlg) return;
+  if (inDialog && bar.parentElement !== dlg) dlg.appendChild(bar);
+  else if (!inDialog && bar.parentElement === dlg) document.body.appendChild(bar);
+}
+
 function launchGame() {
+  unlockTTS(); // la voz necesita el gesto del usuario para activarse
   hideOverlay(SELECTORS.overlayResult);
+  mountStartBar(false);
   document.body.classList.remove("start-mode", "game-over");
   document.body.classList.add("playing");
   newGame(true);

@@ -333,3 +333,13 @@ body.playing .start-bar { display: none; }
 
 /* micrófono de dictado junto a la respuesta */
 #btn-mic { font-size: 17px; padding: 8px 12px; }
+
+/* dentro del diálogo de fin de partida la barra va en flujo normal */
+.dialog .start-bar {
+  position: static;
+  transform: none;
+  margin-top: 14px;
+  box-shadow: none;
+  justify-content: center;
+  flex-wrap: wrap;
+}
