@@ -183,6 +183,11 @@ export class Aquarium{
     const delta = this.score - this._lastScore
     this._lastScore = this.score
 
+    // preocupación anticipada: negativo, o cayendo por debajo del umbral
+    // tras haber estado por encima (así al empezar en 0 sigue feliz)
+    this.scorePeak = Math.max(this.scorePeak ?? 0, this.score)
+    this.fish.worry = this.score < 0 || (this.score < 10 && this.scorePeak > 10)
+
     // reacciones al cambio
     if(delta >= 5){
       this.fish.happy()
@@ -258,6 +263,7 @@ export class Aquarium{
   reset(){
     this.score = 0
     this._lastScore = 0
+    this.scorePeak = 0
     this._goEmitted = false
     this.fish.reset()
     for(const c of this.companions) c.destroy()

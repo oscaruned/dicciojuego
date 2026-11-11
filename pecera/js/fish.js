@@ -50,6 +50,8 @@ export class Fish{
     this.deathDone = false
     this.scaredT = 0
     this.tier = 0
+    this.worry = false       // preocupación anticipada (la fija animation.js)
+    this.blinkCluster = 0    // parpadeos en racimo al asustarse
 
     this._cacheParts()
     this._applySwimTransform()
@@ -95,9 +97,10 @@ export class Fish{
       this.dp.x += (this.pos.x < this.dp.x ? 1 : -1) * 30 * dt
     }
 
-    // dirección deseada
+    // dirección deseada (preocupado: vaga más lento, como apagado)
+    const cruise = this.cruise * (this.state === 'preocupado' ? 0.65 : 1)
     const dx = this.dp.x - this.pos.x
-    let desired = clamp(dx * 1.4, -this.cruise, this.cruise)
+    let desired = clamp(dx * 1.4, -cruise, cruise)
     // evitar pegarse a los muros: girar antes del borde
     if(this.pos.x < 150 && this.facing === -1 && desired < 0) desired = Math.abs(desired) * 0.4
     if(this.pos.x > 650 && this.facing === 1 && desired > 0) desired = -Math.abs(desired) * 0.4
@@ -185,9 +188,11 @@ export class Fish{
   // ------------------------------------------------------------- vida/estado
   _speedFactor(){
     const lvl = this.water.level
-    if(lvl > 40) return 1
-    if(lvl > 20) return 0.75
-    if(lvl > 5) return 0.5
+    // preocupado: nada más apagado incluso con agua razonable
+    const worryK = this.worry && lvl > 40 ? 0.8 : 1
+    if(lvl > 40) return worryK
+    if(lvl > 20) return 0.75 * worryK
+    if(lvl > 5) return 0.5 * worryK
     if(lvl > 0) return 0.3
     return 0.12
   }
@@ -203,6 +208,12 @@ export class Fish{
     this.blinkT -= dt
     if(this.blinkT <= 0){ this.blinkT = rand(2, 5.5); this.blinkActive = 0.12 }
     if(this.blinkActive > 0) this.blinkActive -= dt
+    // racimo de parpadeos al asustarse: 3 párpados rápidos seguidos
+    if(this.blinkCluster > 0 && this.blinkActive <= 0){
+      this.blinkActive = 0.09
+      this.blinkCluster -= 1
+      this.blinkT = Math.max(this.blinkT, 0.3)
+    }
 
     if(this.dying){ this._updateDeath(dt); return }
     if(!this.alive) return
@@ -225,7 +236,9 @@ export class Fish{
   _stateFromWater(){
     const lvl = this.water.level
     if(this.scaredT > 0) return 'asustado'
-    if(lvl >= 36) return 'feliz'
+    // preocupación anticipada: la pecera avisa cuando la puntuación va mal
+    // (negativa, o cayendo por debajo del umbral tras haber estado alta)
+    if(lvl >= 36 && !this.worry) return 'feliz'
     if(lvl > 18) return 'preocupado'
     if(lvl > 4) return 'boquea'
     if(lvl > 0) return 'cae'
@@ -253,9 +266,11 @@ export class Fish{
     if(!p.tail) return
     const swing = Math.sin(this.tailPhase) * (11 + extraTail * 9)
     p.tail.setAttribute('transform', `rotate(${swing} -44 0)`)
-    if(p.dorsal) p.dorsal.setAttribute('transform', `rotate(${Math.sin(this.tailPhase * 1.15) * 6} -4 -36)`)
-    if(p.pelvic) p.pelvic.setAttribute('transform', `rotate(${Math.sin(this.tailPhase * 0.9 + 1) * -7} 8 26)`)
-    if(p.fin) p.fin.setAttribute('transform', `rotate(${Math.sin(this.tailPhase + 0.6) * 9} 6 12)`)
+    // preocupado: aletas caídas y cuerpo menos vital
+    const droop = this.state === 'preocupado' ? 12 : 0
+    if(p.dorsal) p.dorsal.setAttribute('transform', `rotate(${Math.sin(this.tailPhase * 1.15) * 6 + droop * 0.5} -4 -36)`)
+    if(p.pelvic) p.pelvic.setAttribute('transform', `rotate(${Math.sin(this.tailPhase * 0.9 + 1) * -7 - droop} 8 26)`)
+    if(p.fin) p.fin.setAttribute('transform', `rotate(${Math.sin(this.tailPhase + 0.6) * 9 - droop * 0.7} 6 12)`)
     if(p.torso){
       const sq = 1 + Math.sin(this.tailPhase * 0.8) * 0.03
       p.torso.setAttribute('transform', `scale(${2 - sq},${sq})`)
@@ -273,9 +288,28 @@ export class Fish{
     // mirada
     const ex = Math.sin(this.lookPhase) * 1.6, ey = Math.cos(this.lookPhase * 0.8) * 1.1
     if(p.eye) p.eye.setAttribute('transform', `translate(${ex},${ey})`)
-    if(p.pupil) p.pupil.setAttribute('transform', `translate(${ex * 0.5},${ey * 0.5})`)
     // parpadeo (también en 'cae', no en muerto)
-    if(p.lid) p.lid.setAttribute('opacity', (this.blinkActive > 0 && st !== 'muerto') ? '0.92' : '0')
+    // preocupado: párpado a medias persistente (ojo entrecerrado, "apagado");
+    // el racimo de parpadeos del susto usa un párpado algo menos cerrado
+    if(p.lid){
+      if(st === 'preocupado'){
+        p.lid.setAttribute('opacity', '0.42');
+        p.lid.setAttribute('transform', 'translate(0,2.5)')
+      } else {
+        p.lid.setAttribute('opacity', (this.blinkActive > 0 && st !== 'muerto') ? '0.92' : '0')
+        p.lid.setAttribute('transform', this.blinkCluster > 0 ? 'translate(0,1)' : 'translate(0,0)')
+      }
+    }
+    // asustado: pupila encogida (ojos de plato); centrada, sin desplazarse
+    if(p.pupil){
+      if(st === 'asustado'){
+        const k = 0.55
+        p.pupil.setAttribute('transform',
+          `translate(${ex * 0.5 + 3 * (1 - k)},${ey * 0.5 + 0.5 * (1 - k)}) scale(${k})`)
+      } else {
+        p.pupil.setAttribute('transform', `translate(${ex * 0.5},${ey * 0.5})`)
+      }
+    }
     // boca
     if(p.mouthArc && p.mouthO){
       if(st === 'boquea' || st === 'cae' || st === 'asustado'){
@@ -308,6 +342,7 @@ export class Fish{
     this.deathT = 0
     const p = this.parts
     if(p.deadEyes) p.deadEyes.setAttribute('opacity', '1')
+    if(p.lid) p.lid.setAttribute('opacity', '0')  // ojo abierto para los ojos en X
     if(p.crown) p.crown.setAttribute('opacity', '0')
     this.dp = { x: this.pos.x, y: 424 }    // caer hasta la arena
   }
@@ -358,6 +393,8 @@ export class Fish{
     if(p.tail) p.tail.setAttribute('transform', 'rotate(0 -44 0)')
     if(p.fin) p.fin.setAttribute('transform', 'rotate(0 6 12)')
     this.state = 'feliz'
+    this.worry = false
+    this.blinkCluster = 0
     this.dp = this._pickPoint()
     this._applySwimTransform()
   }
@@ -374,7 +411,8 @@ export class Fish{
 
   scared(){
     if(!this.alive || this.dying) return
-    this.scaredT = 0.8
+    this.scaredT = 1.8       // antes 0,8: apenas daba tiempo a verlo
+    this.blinkCluster = 3    // flinch de párpados al principio del susto
     if(this.facing === 1) this._beginTurn(-1)
     else this.vx = this.cruise * -0.2
     this.bubbles.burst(this.pos.x, this.pos.y, 7, 50)
