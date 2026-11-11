@@ -676,7 +676,7 @@ function handleGuess() {
       // se conservan las letras compradas hasta ahora en el cuadro de edición
       input.value = STATE.revealedLetters;
       input.disabled = false;
-      input.focus();
+      input.blur(); // recoger el teclado tras cada envío (TalkBack/Android)
     } else {
       feedback.textContent =
         `Fallaste. La palabra era: ${STATE.currentWord}. -1 punto`;
