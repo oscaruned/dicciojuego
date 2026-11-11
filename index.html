@@ -3,49 +3,105 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Diccionario aleatorio</title>
+  <title>Pecera de palabras</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="app.js?v=4"></script>
+  <script defer src="app.js?v=11"></script>
 </head>
 <body>
-  <main class="container">
-    <h1>Diccionario aleatorio</h1>
+  <main class="container game-side">
+    <header class="header">
+      <h1>🐟 Pecera de palabras</h1>
+      <button id="btn-instructions" class="btn-ghost">Instrucciones del juego</button>
+      <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
+    </header>
 
-    <p class="info">La aplicación busca <code>train.csv</code> en la misma carpeta. Si no puede cargarlo, puedes subir el archivo manualmente.</p>
+    <section class="panel levels">
+      <span class="panel-label">Nivel</span>
+      <div class="level-row">
+        <select id="level-select" aria-label="Nivel de dificultad">
+          <option value="1">Básico</option>
+          <option value="2">Fácil</option>
+          <option value="3">Intermedio</option>
+          <option value="4">Difícil</option>
+          <option value="5">Muy difícil</option>
+        </select>
+      </div>
+    </section>
 
-    <div class="controls">
-      <button id="btn-buy-letter">Comprar letra</button>
-      <span id="count">Cargando…</span>
-      <div class="score-display">Puntuación: <span id="score">0</span></div>
-    </div>
+    <section class="panel status">
+      <div class="stats-row">
+        <div class="score-display">Puntos: <span id="score">0</span></div>
+        <div class="best-display">Récord: <span id="best">0</span></div>
+        <div class="pool-display">Palabras: <span id="pool">—</span></div>
+      </div>
+      <div class="controls">
+        <button id="btn-buy-letter" class="btn-primary">Comprar letra (-2)</button>
+        <button id="btn-finish" class="btn-danger">Finalizar partida</button>
+      </div>
+    </section>
 
-    <div class="word-row">
+    <section class="panel word-panel">
       <label>Palabra:</label>
       <div id="word" class="word">—</div>
-    </div>
 
-    <div class="definition-row">
       <label>Definición:</label>
       <div id="definition" class="definition-box"></div>
-    </div>
+    </section>
 
-    <div class="guess-row">
-      <label>Adivina la palabra:</label>
+    <section class="panel guess-panel">
+      <label for="guess-input">Adivina la palabra:</label>
       <div class="guess-controls">
         <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
-        <button id="guess-submit">Probar</button>
+        <button id="guess-submit" class="btn-primary">Probar</button>
       </div>
       <div id="attempts-info" class="attempts-info"></div>
       <div id="guess-feedback" class="feedback">—</div>
-    </div>
+      <div id="count" class="status-line">Cargando…</div>
+    </section>
 
     <div class="fallback">
       <label for="file-input">Si no se carga automáticamente, selecciona aquí tu <code>train.csv</code>:</label>
       <input id="file-input" type="file" accept=".csv,text/csv">
     </div>
-
-
   </main>
+
+  <div id="overlay-instructions" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Cómo se juega</h2>
+      <ul class="rules">
+        <li><strong>Palabra oculta:</strong> se muestra una palabra tapada letra a letra (<code>_ _ _</code>) junto a su definición en español. Tienes tantos intentos como letras tiene la palabra.</li>
+        <li><strong>Comprar letra</strong> (-2 puntos): revela la siguiente letra oculta y devuelve el temporizador al minuto entero.</li>
+        <li><strong>Aciertos</strong>: si adivinas la palabra, sumas el número total de letras (una palabra de 7 letras vale +7 puntos).</li>
+        <li><strong>Errores</strong>: cada respuesta fallida resta 1 punto.</li>
+        <li><strong>Tiempo</strong>: cada minuto sin responder resta 1 punto. En los últimos 10 segundos del minuto oirás pitidos en escala ascendente.</li>
+        <li><strong>Niveles</strong>: básico, fácil, intermedio, difícil y muy difícil (desplegable). Cambiar de nivel empieza una partida nueva desde 0 puntos. Al recargar la página sigues en tu nivel.</li>
+        <li><strong>Fin de partida</strong>: pulsa «Finalizar partida» cuando quieras o termina automáticamente si llegas a −20 puntos.</li>
+        <li><strong>Récords</strong>: en cada nivel se guarda tu mejor puntuación de todas las partidas que hayas jugado en ese nivel.</li>
+        <li><strong>Voz</strong>: la app narra definiciones, letras compradas y resultados (TTS en español). Si usas TalkBack u otro lector de pantalla, cambia el botón «Narración» a <em>lector de pantalla</em>: así la app deja de hablar por su cuenta y todos los avisos los dirá tu lector, sin pelearse por la voz.</li>
+      </ul>
+      <button id="btn-close-instructions" class="btn-primary btn-big">Entendido</button>
+    </div>
+  </div>
+
+  <div id="overlay-result" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Partida finalizada</h2>
+      <div id="result-body"></div>
+      <button id="btn-new-game" class="btn-primary btn-big">Nueva partida</button>
+    </div>
+  </div>
+
+  <!-- región oculta para lectores de pantalla (TalkBack, VoiceOver…):
+       recibe los mismos avisos que el TTS de la app -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- zona derecha (apaisado) o inferior (vertical): marcador de acuario -->
+  <section id="pecera-slot" class="pecera-slot" aria-label="Marcador de acuario">
+    <div class="aquarium-score"><span class="label">PUNTOS</span> <span id="pecera-score">0</span></div>
+    <div id="aquarium-root" class="aquarium-root"></div>
+  </section>
+
+  <script type="module" src="pecera/integracion.js?v=1"></script>
 </body>
 </html>
