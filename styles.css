@@ -278,3 +278,58 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .new-record { color: #b45309; font-weight: 600; }
 
 .hidden { display: none; }
+
+/* ===== estados de la interfaz =====
+   start-mode: arranque — solo la pecera (pantalla completa) y la barra de
+   Nueva partida. playing: partida en curso — la barra se oculta.
+   game-over: fin de partida — se ocultan los paneles del juego (quedan el
+   encabezado y la barra). dialog-open: instrucciones — la columna del juego
+   desaparece por completo. */
+body.start-mode main,
+body.dialog-open main { display: none; }
+
+body.start-mode .pecera-slot {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  border: none;
+  border-radius: 0;
+}
+
+body.game-over main .panel,
+body.game-over main .fallback { display: none; }
+
+body.playing .start-bar { display: none; }
+
+/* barra de Nueva partida + nivel (encima de los overlays) */
+.start-bar {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, .25);
+}
+.start-bar label { font-size: 14px; color: var(--muted); }
+.start-bar select {
+  padding: 9px 12px;
+  font-size: 15px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--ink);
+  cursor: pointer;
+  min-width: 170px;
+}
+.start-bar select:focus { outline: 2px solid var(--accent); border-color: transparent; }
+.start-bar button { padding: 10px 18px; font-size: 15px; }
+
+/* micrófono de dictado junto a la respuesta */
+#btn-mic { font-size: 17px; padding: 8px 12px; }

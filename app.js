@@ -41,6 +41,7 @@ const PECERA_INTRO_MS = 5000; // duración de la animación de entrada de la pec
 
 const SELECTORS = {
   btnBuyLetter: "#btn-buy-letter",
+  btnPass: "#btn-pass",
   btnFinish: "#btn-finish",
   btnInstructions: "#btn-instructions",
   levelSelect: "#level-select",
@@ -53,7 +54,6 @@ const SELECTORS = {
   count: "#count",
   score: "#score",
   best: "#best",
-  pool: "#pool",
   peceraSlot: "#pecera-slot",
   peceraScore: "#pecera-score",
   fileInput: "#file-input",
@@ -186,11 +186,6 @@ function updateBest() {
   $(SELECTORS.best).textContent = bestForLevel(STATE.level);
 }
 
-function updatePool() {
-  const n = STATE.entries.filter((e) => e[2] === STATE.level).length;
-  $(SELECTORS.pool).textContent = `${n} palabras`;
-}
-
 function updateFallbackVisibility() {
   const fallback = $(SELECTORS.fallback);
   if (!fallback) return;
@@ -215,6 +210,7 @@ function updateWordDisplay() {
 
 function setControlsEnabled(buy, guess, finish) {
   $(SELECTORS.btnBuyLetter).disabled = !buy;
+  $(SELECTORS.btnPass).disabled = !buy;
   $(SELECTORS.guessInput).disabled = !guess;
   $(SELECTORS.guessSubmit).disabled = !guess;
   $(SELECTORS.btnFinish).disabled = !finish;
@@ -384,7 +380,6 @@ function newGame(announce = true) {
   STATE.revealedLetters = "";
   updateScore();
   updateBest();
-  updatePool();
   setControlsEnabled(false, false, true);
   if (announce) speak(`Partida nueva en nivel ${LEVEL_NAMES[STATE.level]}`, true);
   $(SELECTORS.word).textContent = "—";
@@ -427,8 +422,12 @@ function finishGame(auto) {
   if (!STATE.gameActive) return;
   STATE.gameActive = false;
   STATE.roundResolved = true;
+  // parar en seco el contador de minuto y dejarlo a cero
   clearRoundTimer();
+  STATE.secondsLeft = ROUND_SECONDS;
   setControlsEnabled(false, false, false);
+  document.body.classList.remove("playing");
+  document.body.classList.add("game-over");
 
   // la pecera para su reloj de inactividad; si la partida la cierra el
   // jugador (y no la muerte por −20) el pez se asusta pero no muere
@@ -469,6 +468,100 @@ function finishGame(auto) {
   $(SELECTORS.guessFeedback).textContent = "";
   $(SELECTORS.attemptsInfo).textContent = "";
   $(SELECTORS.overlayResult).classList.remove("hidden");
+}
+
+// ---------- pasapalabra ----------
+// Pasa a otra definición pagando tantos puntos como letras tenga la palabra
+// pedida (el fallo de la palabra no penaliza intentos adicionales).
+function passWord() {
+  if (!STATE.currentWord || STATE.roundResolved) return;
+  const lettersCount = Array.from(STATE.currentWord).length;
+  STATE.score -= lettersCount;
+  STATE.roundResolved = true;
+  clearRoundTimer();
+  STATE.secondsLeft = ROUND_SECONDS;
+  updateScore();
+  $(SELECTORS.word).textContent = STATE.currentWord;
+  $(SELECTORS.guessFeedback).textContent =
+    `Pasapalabra: la palabra era "${STATE.currentWord}". -${lettersCount} puntos`;
+  $(SELECTORS.guessInput).disabled = true;
+  $(SELECTORS.guessSubmit).disabled = true;
+  $(SELECTORS.attemptsInfo).textContent = "";
+  speak(`Pasapalabra. La palabra era ${STATE.currentWord}. Menos ${lettersCount} puntos`, true);
+  resolveRound();
+}
+
+// ---------- dictado por voz (micrófono) ----------
+// Reconocimiento de voz del navegador (Chrome/Edge/Safari): lo pronunciado
+// sustituye por completo el contenido del cuadro de respuesta.
+function setupMic() {
+  const btn = document.getElementById("btn-mic");
+  if (!btn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    btn.disabled = true;
+    btn.title = "Reconocimiento de voz no disponible en este navegador";
+    return;
+  }
+  btn.addEventListener("click", () => {
+    const input = $(SELECTORS.guessInput);
+    if (input.disabled) return;
+    try {
+      const rec = new SR();
+      rec.lang = "es-ES";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      STATE.micRecognition = rec; // evitar que el navegador lo recoja
+      btn.textContent = "…";
+      btn.disabled = true;
+      const restore = () => {
+        btn.textContent = "🎤";
+        btn.disabled = $(SELECTORS.guessInput).disabled;
+      };
+      rec.onresult = (ev) => {
+        const said = (ev.results[0][0].transcript || "").trim();
+        if (said) {
+          input.value = said; // sustituye por completo lo que hubiera
+          input.focus();
+        }
+      };
+      rec.onerror = (ev) => {
+        if (ev.error === "not-allowed") {
+          $(SELECTORS.guessFeedback).textContent = "Micrófono no permitido.";
+        }
+      };
+      rec.onend = restore;
+      rec.start();
+      speak("Escuchando", true);
+    } catch (e) {
+      console.warn("Reconocimiento de voz no disponible:", e);
+      btn.textContent = "🎤";
+    }
+  });
+}
+
+// ---------- pantalla completa ----------
+// La app intenta arrancar a pantalla completa; si el navegador lo exige con
+// un gesto del usuario, se pide con el primer toque/click.
+function requestFullscreen() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!fn) return;
+  try {
+    const p = fn.call(el);
+    if (p && p.catch) p.catch(() => { /* sin gesto: se reintentará */ });
+  } catch (e) { /* sin gesto: se reintentará */ }
+}
+
+function setupFullscreen() {
+  requestFullscreen();
+  const retry = () => {
+    window.removeEventListener("pointerdown", retry);
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      requestFullscreen();
+    }
+  };
+  window.addEventListener("pointerdown", retry, { once: true });
 }
 
 // ---------- acciones del juego ----------
@@ -576,15 +669,21 @@ function handleGuess() {
 }
 
 // ---------- niveles ----------
+// Elegir nivel solo define la dificultad (se guarda); la partida nueva
+// arranca con el botón «Nueva partida» de la barra inferior.
 function selectLevel(n) {
-  hideOverlay(SELECTORS.overlayResult);
   STATE.level = n;
   lsSet(LS_LEVEL, String(n));
   $(SELECTORS.levelSelect).value = String(n);
-  // cambiar de nivel equivale a empezar una partida nueva desde cero
-  newGame(true);
   updateBest();
-  updatePool();
+}
+
+// ---------- arranque de partida desde la barra ----------
+function launchGame() {
+  hideOverlay(SELECTORS.overlayResult);
+  document.body.classList.remove("start-mode", "game-over");
+  document.body.classList.add("playing");
+  newGame(true);
 }
 
 // ---------- overlays ----------
@@ -594,11 +693,13 @@ function hideOverlay(sel) {
 
 function openInstructions() {
   $(SELECTORS.overlayInstructions).classList.remove("hidden");
+  document.body.classList.add("dialog-open"); // la columna del juego desaparece
   if (STATE.gameActive && !STATE.roundResolved) pauseTimer();
 }
 
 function closeInstructions() {
   hideOverlay(SELECTORS.overlayInstructions);
+  document.body.classList.remove("dialog-open");
   if (STATE.gameActive) resumeTimer(); // nunca se muestran solas al empezar una partida
 }
 
@@ -626,14 +727,13 @@ function loadCsvText(text) {
   STATE.entries = filterRows(parsed.data);
   STATE.loadAttempted = true;
   updateFallbackVisibility();
-  updatePool();
 
   if (!STATE.entries.length) {
     $(SELECTORS.count).textContent = "No hay entradas válidas en el CSV.";
     updateFallbackVisibility();
     return;
   }
-  $(SELECTORS.count).textContent = `${STATE.entries.length} palabras cargadas`;
+  $(SELECTORS.count).textContent = ""; // no se informa del total cargado
 
   // si todavía no hay ronda activa (por ejemplo tras recargar), arrancamos;
   // si la pecera sigue en su animación de entrada, la ronda queda en cola
@@ -675,7 +775,6 @@ function init() {
 
   updateScore();
   updateBest();
-  updatePool();
   updateFallbackVisibility();
   setControlsEnabled(false, false, false);
   $(SELECTORS.levelSelect).value = String(STATE.level);
@@ -684,6 +783,7 @@ function init() {
   });
 
   $(SELECTORS.btnBuyLetter).addEventListener("click", buyLetter);
+  $(SELECTORS.btnPass).addEventListener("click", passWord);
   $(SELECTORS.btnFinish).addEventListener("click", () => finishGame(false));
   $(SELECTORS.btnInstructions).addEventListener("click", openInstructions);
   $(SELECTORS.btnCloseInstructions).addEventListener("click", closeInstructions);
@@ -708,10 +808,10 @@ function init() {
       ? "Modo lector de pantalla activado. Los avisos los dirá tu lector."
       : "Modo voz de la app activado.");
   });
-  $(SELECTORS.btnNewGame).addEventListener("click", () => {
-    hideOverlay(SELECTORS.overlayResult);
-    newGame(true);
-  });
+  $(SELECTORS.btnNewGame).addEventListener("click", launchGame);
+
+  setupMic();
+  setupFullscreen();
 
   $(SELECTORS.fileInput).addEventListener("change", (ev) => {
     const f = ev.target.files && ev.target.files[0];
@@ -737,12 +837,10 @@ function init() {
       "No se cargó train.csv automáticamente; por favor sube el archivo.";
     STATE.entries = [];
     updateFallbackVisibility();
-    updatePool();
   });
 
-  // al entrar directamente empieza la partida: las instrucciones nunca se
-  // muestran automáticamente, solo con el botón
-  newGame(false);
+  // las instrucciones nunca se muestran automáticamente; solo con el botón.
+  // El juego no arranca solo: espera a «Nueva partida» en la barra inferior.
 }
 
 document.addEventListener("DOMContentLoaded", init);

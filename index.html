@@ -6,9 +6,9 @@
   <title>Pecera de palabras</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="app.js?v=11"></script>
+  <script defer src="app.js?v=12"></script>
 </head>
-<body>
+<body class="start-mode">
   <main class="container game-side">
     <header class="header">
       <h1>🐟 Pecera de palabras</h1>
@@ -16,27 +16,14 @@
       <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
     </header>
 
-    <section class="panel levels">
-      <span class="panel-label">Nivel</span>
-      <div class="level-row">
-        <select id="level-select" aria-label="Nivel de dificultad">
-          <option value="1">Básico</option>
-          <option value="2">Fácil</option>
-          <option value="3">Intermedio</option>
-          <option value="4">Difícil</option>
-          <option value="5">Muy difícil</option>
-        </select>
-      </div>
-    </section>
-
     <section class="panel status">
       <div class="stats-row">
         <div class="score-display">Puntos: <span id="score">0</span></div>
         <div class="best-display">Récord: <span id="best">0</span></div>
-        <div class="pool-display">Palabras: <span id="pool">—</span></div>
       </div>
       <div class="controls">
         <button id="btn-buy-letter" class="btn-primary">Comprar letra (-2)</button>
+        <button id="btn-pass" class="btn-ghost">Pasapalabra</button>
         <button id="btn-finish" class="btn-danger">Finalizar partida</button>
       </div>
     </section>
@@ -53,6 +40,7 @@
       <label for="guess-input">Adivina la palabra:</label>
       <div class="guess-controls">
         <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
+        <button id="btn-mic" class="btn-ghost" aria-label="Diccionar la palabra" title="Diccionar la palabra">🎤</button>
         <button id="guess-submit" class="btn-primary">Probar</button>
       </div>
       <div id="attempts-info" class="attempts-info"></div>
@@ -72,15 +60,18 @@
       <ul class="rules">
         <li><strong>Palabra oculta:</strong> se muestra una palabra tapada letra a letra (<code>_ _ _</code>) junto a su definición en español. Tienes tantos intentos como letras tiene la palabra.</li>
         <li><strong>Comprar letra</strong> (-2 puntos): revela la siguiente letra oculta y devuelve el temporizador al minuto entero.</li>
+        <li><strong>Pasapalabra</strong>: resta tantos puntos como letras tenga la palabra pedida y pasa a otra definición.</li>
+        <li><strong>Micrófono 🎤</strong>: junto a la casilla de respuesta; al pulsarlo, lo que pronuncies sustituye por completo el contenido de la casilla.</li>
         <li><strong>Aciertos</strong>: si adivinas la palabra, sumas el número total de letras (una palabra de 7 letras vale +7 puntos).</li>
         <li><strong>Errores</strong>: cada respuesta fallida resta 1 punto.</li>
         <li><strong>Tiempo</strong>: cada minuto sin responder resta 1 punto. En los últimos 10 segundos del minuto oirás pitidos en escala ascendente.</li>
-        <li><strong>Niveles</strong>: básico, fácil, intermedio, difícil y muy difícil (desplegable). Cambiar de nivel empieza una partida nueva desde 0 puntos. Al recargar la página sigues en tu nivel.</li>
+        <li><strong>Niveles</strong>: básico, fácil, intermedio, difícil y muy difícil (desplegable junto a «Nueva partida»). Cambiar de nivel define la dificultad de la próxima partida; los récords se guardan por nivel.</li>
+        <li><strong>Arranque</strong>: al abrir la app se ve la pecera a pantalla completa; al pulsar «Nueva partida» la pecera se recoloca en 5 segundos y entonces llega la primera pregunta.</li>
         <li><strong>Fin de partida</strong>: pulsa «Finalizar partida» cuando quieras o termina automáticamente si llegas a −20 puntos.</li>
         <li><strong>Récords</strong>: en cada nivel se guarda tu mejor puntuación de todas las partidas que hayas jugado en ese nivel.</li>
         <li><strong>Voz</strong>: la app narra definiciones, letras compradas y resultados (TTS en español). Si usas TalkBack u otro lector de pantalla, cambia el botón «Narración» a <em>lector de pantalla</em>: así la app deja de hablar por su cuenta y todos los avisos los dirá tu lector, sin pelearse por la voz.</li>
       </ul>
-      <button id="btn-close-instructions" class="btn-primary btn-big">Entendido</button>
+      <button id="btn-close-instructions" class="btn-primary btn-big">Continuar</button>
     </div>
   </div>
 
@@ -88,8 +79,21 @@
     <div class="dialog">
       <h2>Partida finalizada</h2>
       <div id="result-body"></div>
-      <button id="btn-new-game" class="btn-primary btn-big">Nueva partida</button>
     </div>
+  </div>
+
+  <!-- barra de Nueva partida + nivel: visible en el arranque y en el
+       fin de partida; la dificultad se define antes de una partida nueva -->
+  <div id="start-bar" class="start-bar">
+    <label for="level-select">Nivel:</label>
+    <select id="level-select" aria-label="Nivel de dificultad">
+      <option value="1">Básico</option>
+      <option value="2">Fácil</option>
+      <option value="3">Intermedio</option>
+      <option value="4">Difícil</option>
+      <option value="5">Muy difícil</option>
+    </select>
+    <button id="btn-new-game" class="btn-primary">Nueva partida</button>
   </div>
 
   <!-- región oculta para lectores de pantalla (TalkBack, VoiceOver…):
