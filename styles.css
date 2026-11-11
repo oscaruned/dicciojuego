@@ -300,6 +300,7 @@ body.game-over main .panel,
 body.game-over main .fallback { display: none; }
 
 body.playing .start-bar { display: none; }
+body.dialog-open .start-bar { display: none; }
 
 /* barra de Nueva partida + nivel (encima de los overlays) */
 .start-bar {

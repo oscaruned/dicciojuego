@@ -2,18 +2,16 @@
 <html lang="es">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=overlays-content" />
   <title>Pecera de palabras</title>
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-  <script defer src="app.js?v=13"></script>
+  <script defer src="app.js?v=14"></script>
 </head>
 <body class="start-mode">
   <main class="container game-side">
     <header class="header">
       <h1>🐟 Pecera de palabras</h1>
-      <button id="btn-instructions" class="btn-ghost">Instrucciones del juego</button>
-      <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
     </header>
 
     <section class="panel status">
@@ -21,19 +19,14 @@
         <div class="score-display">Puntos: <span id="score">0</span></div>
         <div class="best-display">Récord: <span id="best">0</span></div>
       </div>
-      <div class="controls">
-        <button id="btn-buy-letter" class="btn-primary">Comprar letra (-2)</button>
-        <button id="btn-pass" class="btn-ghost">Pasapalabra</button>
-        <button id="btn-finish" class="btn-danger">Finalizar partida</button>
-      </div>
     </section>
 
     <section class="panel word-panel">
-      <label>Palabra:</label>
-      <div id="word" class="word">—</div>
-
       <label>Definición:</label>
       <div id="definition" class="definition-box"></div>
+
+      <label>Palabra:</label>
+      <div id="word" class="word">—</div>
     </section>
 
     <section class="panel guess-panel">
@@ -42,6 +35,11 @@
         <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
         <button id="btn-mic" class="btn-ghost" aria-label="Dictar la palabra por voz" title="Dictar la palabra por voz">Micrófono</button>
         <button id="guess-submit" class="btn-primary">Probar</button>
+      </div>
+      <div class="controls">
+        <button id="btn-buy-letter" class="btn-primary">Comprar letra (-2)</button>
+        <button id="btn-pass" class="btn-ghost">Pasapalabra</button>
+        <button id="btn-finish" class="btn-danger">Finalizar partida</button>
       </div>
       <div id="attempts-info" class="attempts-info"></div>
       <div id="guess-feedback" class="feedback">—</div>
@@ -82,9 +80,11 @@
     </div>
   </div>
 
-  <!-- barra de Nueva partida + nivel: visible en el arranque y en el
+  <!-- barra de opciones y Nueva partida: visible en el arranque y en el
        fin de partida; la dificultad se define antes de una partida nueva -->
   <div id="start-bar" class="start-bar">
+    <button id="btn-instructions" class="btn-ghost">Instrucciones</button>
+    <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
     <label for="level-select">Nivel:</label>
     <select id="level-select" aria-label="Nivel de dificultad">
       <option value="1">Básico</option>

@@ -368,7 +368,8 @@ function showEntry(entry) {
   $(SELECTORS.attemptsInfo).textContent = `Tienes ${STATE.maxAttempts} intento(s)`;
   $(SELECTORS.guessInput).value = "";
   setControlsEnabled(true, true, true);
-  $(SELECTORS.guessInput).focus();
+  // sin autofocus: el teclado solo se abre si el usuario toca el campo
+  // (en Android abría el teclado y aplastaba la pecera)
   speak(`Palabra de ${lettersCount} letras. Definición: ${d}`);
 
   // cada ronda nueva pone a cero el reloj de inactividad de la pecera
@@ -403,8 +404,12 @@ function newGame(announce = true) {
   $(SELECTORS.guessFeedback).textContent = `Nivel ${LEVEL_NAMES[STATE.level]}: prepárate…`;
   $(SELECTORS.attemptsInfo).textContent = "";
 
-  // nueva partida: agua al 40 %, pez vivo y, si procede, animación de entrada
-  PECERA.run((aq) => aq.reset());
+  // nueva partida: agua al 40 %, pez vivo, sonido de fondo otra vez y,
+  // si procede, animación de entrada
+  PECERA.run((aq) => {
+    aq.reset();
+    if (aq.audio && aq.audio.setMuted) aq.audio.setMuted(false);
+  });
 
   const first = pickRandom();
   if (first) {
@@ -444,11 +449,13 @@ function finishGame(auto) {
   setControlsEnabled(false, false, false);
   document.body.classList.remove("playing");
   document.body.classList.add("game-over");
-  // la pecera para su reloj de inactividad; si la partida la cierra el
-  // jugador (y no la muerte por −20) el pez se asusta pero no muere
+  // la pecera para su reloj de inactividad y su sonido de fondo; si la
+  // partida la cierra el jugador (y no la muerte por −20) el pez se asusta
+  // pero no muere
   PECERA.run((aq) => {
     if (aq.stopIdle) aq.stopIdle();
     if (!auto && aq.scared) aq.scared();
+    if (aq.audio && aq.audio.setMuted) aq.audio.setMuted(true); // silenciar el ambiente
   });
 
   const finalScore = STATE.score;
@@ -601,9 +608,7 @@ function buyLetter() {
   const input = $(SELECTORS.guessInput);
   input.disabled = false;
   input.value = STATE.revealedLetters;
-  const cursorPos = input.value.length;
-  input.focus();
-  input.setSelectionRange(cursorPos, cursorPos);
+  // sin autofocus: no se abre el teclado al comprar letra
   $(SELECTORS.guessFeedback).textContent =
     `Letras reveladas: ${revealed} (-2 puntos)`;
   $(SELECTORS.attemptsInfo).textContent =
@@ -646,6 +651,7 @@ function handleGuess() {
       `Correcto — la palabra es "${STATE.currentWord}". +${pointsEarned} puntos`;
     input.disabled = true;
     $(SELECTORS.guessSubmit).disabled = true;
+    input.blur(); // recoger el teclado al terminar la ronda
     STATE.roundResolved = true;
     clearRoundTimer();
     updateScore();
@@ -678,6 +684,7 @@ function handleGuess() {
       speak(`Fallaste. La palabra era ${STATE.currentWord}.`, true);
       input.disabled = true;
       $(SELECTORS.guessSubmit).disabled = true;
+      input.blur(); // recoger el teclado al terminar la ronda
       STATE.roundResolved = true;
       clearRoundTimer();
       updateScore();
