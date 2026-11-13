@@ -576,9 +576,20 @@ function setupMic() {
         }
       };
       rec.onerror = (ev) => {
-        if (ev.error === "not-allowed") {
-          $(SELECTORS.guessFeedback).textContent = "Micrófono no permitido.";
-        }
+        // TEMPORAL (diagnóstico micrófono): mostrar el error real del navegador
+        const MSGS = {
+          "not-allowed": "Micrófono: permiso denegado (not-allowed)",
+          "service-not-allowed": "Micrófono: servicio no permitido (service-not-allowed)",
+          "no-speech": "Micrófono: no se oyó nada (no-speech)",
+          "audio-capture": "Micrófono: no se detectó micrófono (audio-capture)",
+          "network": "Micrófono: error de red (network)",
+          "aborted": "Micrófono: sesión abortada (aborted)",
+          "language-not-supported": "Micrófono: idioma no soportado",
+        };
+        const msg = MSGS[ev.error] || `Micrófono: error (${ev.error})`;
+        const fb = $(SELECTORS.guessFeedback);
+        fb.textContent = `${msg} — código: ${ev.error}`;
+        console.warn("SpeechRecognition error:", ev.error, ev);
       };
       rec.onend = restore;
       rec.start();
