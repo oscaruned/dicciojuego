@@ -198,10 +198,11 @@ function updateScore(announce = false) {
   checkGameOver();
 }
 
-// tras cada variación de puntuación se dicta el total ("Tienes X"); se encola
-// después del mensaje que la provocó, sin interrumpirlo
+// tras cada variación de puntuación se dicta el total ("Tienes X", sin
+// repetir "puntos": ya lo dijo el mensaje anterior); se encola después del
+// mensaje que la provocó, sin interrumpirlo
 function speakScore() {
-  speak(`Tienes ${STATE.score} puntos`);
+  speak(`Tienes ${STATE.score}`);
 }
 
 function updateBest() {
