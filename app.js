@@ -42,6 +42,7 @@ const PECERA_INTRO_MS = 5000; // duración de la animación de entrada de la pec
 const SELECTORS = {
   btnBuyLetter: "#btn-buy-letter",
   btnPass: "#btn-pass",
+  btnMic: "#btn-mic",
   btnFinish: "#btn-finish",
   btnInstructions: "#btn-instructions",
   levelSelect: "#level-select",
@@ -230,6 +231,9 @@ function setControlsEnabled(buy, guess, finish) {
   $(SELECTORS.guessInput).disabled = !guess;
   $(SELECTORS.guessSubmit).disabled = !guess;
   $(SELECTORS.btnFinish).disabled = !finish;
+  // el micrófono sigue al campo de respuesta; antes lo gestionaba solo el
+  // onend del reconocimiento y quedaba bloqueado si la ronda cambiaba
+  $(SELECTORS.btnMic).disabled = !guess;
 }
 
 // ---------- temporizador de ronda ----------
@@ -533,6 +537,7 @@ function passWord() {
     `Pasapalabra: la palabra era "${STATE.currentWord}". -${lettersCount} puntos`;
   $(SELECTORS.guessInput).disabled = true;
   $(SELECTORS.guessSubmit).disabled = true;
+  $(SELECTORS.btnMic).disabled = true;
   $(SELECTORS.attemptsInfo).textContent = "";
   speak(
     `Pasapalabra. La palabra era ${STATE.currentWord}. Menos ${lettersCount} puntos. Tienes ${STATE.score}`,
@@ -565,8 +570,11 @@ function setupMic() {
       btn.textContent = "…";
       btn.disabled = true;
       const restore = () => {
-        btn.textContent = "🎤";
-        btn.disabled = $(SELECTORS.guessInput).disabled;
+        btn.textContent = "Micrófono";
+        // no copiar el estado del input a ciegas: si la ronda acaba de cerrarse
+        // (input deshabilitado 2 s) el botón quedaría bloqueado; el estado lo
+        // sincroniza setControlsEnabled en cada cambio
+        btn.disabled = !STATE.gameActive || STATE.roundResolved;
       };
       rec.onresult = (ev) => {
         const said = (ev.results[0][0].transcript || "").trim();
@@ -600,7 +608,7 @@ function setupMic() {
       speak("Escuchando", true);
     } catch (e) {
       console.warn("Reconocimiento de voz no disponible:", e);
-      btn.textContent = "🎤";
+      btn.textContent = "Micrófono";
     }
   });
 }
@@ -694,6 +702,7 @@ function handleGuess() {
       `Correcto — la palabra es "${STATE.currentWord}". +${pointsEarned} puntos`;
     input.disabled = true;
     $(SELECTORS.guessSubmit).disabled = true;
+    $(SELECTORS.btnMic).disabled = true;
     input.blur(); // recoger el teclado al terminar la ronda
     STATE.roundResolved = true;
     clearRoundTimer();
@@ -727,6 +736,7 @@ function handleGuess() {
       speak(`Fallaste. La palabra era ${STATE.currentWord}. Tienes ${STATE.score}`, true);
       input.disabled = true;
       $(SELECTORS.guessSubmit).disabled = true;
+      $(SELECTORS.btnMic).disabled = true;
       input.blur(); // recoger el teclado al terminar la ronda
       STATE.roundResolved = true;
       clearRoundTimer();
