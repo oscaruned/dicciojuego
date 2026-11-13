@@ -589,6 +589,10 @@ function setupMic() {
         const msg = MSGS[ev.error] || `Micrófono: error (${ev.error})`;
         const fb = $(SELECTORS.guessFeedback);
         fb.textContent = `${msg} — código: ${ev.error}`;
+        // en Android el feedback queda bajo el teclado y TalkBack no lo anuncia:
+        // repetirlo cerca del micrófono y en la región aria-live del lector
+        $(SELECTORS.attemptsInfo).textContent = msg;
+        announce(`Error del micrófono. ${msg}. Código ${ev.error}`);
         console.warn("SpeechRecognition error:", ev.error, ev);
       };
       rec.onend = restore;
