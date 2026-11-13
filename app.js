@@ -198,6 +198,12 @@ function updateScore(announce = false) {
   checkGameOver();
 }
 
+// tras cada variación de puntuación se dicta el total ("Tienes X"); se encola
+// después del mensaje que la provocó, sin interrumpirlo
+function speakScore() {
+  speak(`Tienes ${STATE.score} puntos`);
+}
+
 function updateBest() {
   $(SELECTORS.best).textContent = bestForLevel(STATE.level);
 }
@@ -257,6 +263,7 @@ function startCountdown() {
       STATE.score -= 1;
       speak("Menos 1 punto", true);
       updateScore();
+      speakScore();
       STATE.secondsLeft = ROUND_SECONDS;
     }
   }, 1000);
@@ -535,6 +542,7 @@ function passWord() {
   $(SELECTORS.guessSubmit).disabled = true;
   $(SELECTORS.attemptsInfo).textContent = "";
   speak(`Pasapalabra. La palabra era ${STATE.currentWord}. Menos ${lettersCount} puntos`, true);
+  speakScore();
   resolveRound();
 }
 
@@ -645,6 +653,7 @@ function buyLetter() {
 
   // "Letra X" y, tras una pausa, todas las letras reveladas hasta ahora
   speak(`Letra ${revealed.slice(-1)}`, true);
+  speakScore(); // "Tienes X" en cola tras el aviso de la letra
   setTimeout(() => {
     speak(`Letras reveladas: ${STATE.revealedLetters.split("").join(", ")}`, true);
   }, 700);
@@ -688,10 +697,12 @@ function handleGuess() {
       `Correcto. La palabra es ${STATE.currentWord}. Has ganado ${pointsEarned} puntos`,
       true
     );
+    speakScore();
   } else {
     STATE.score -= 1;
     speak("Incorrecto, menos 1 punto", true);
     updateScore();
+    speakScore();
     PECERA.run((aq) => aq.scared());
     const remainingAttempts = STATE.maxAttempts - STATE.attempts;
     if (remainingAttempts > 0 && STATE.gameActive) {
@@ -712,6 +723,7 @@ function handleGuess() {
       STATE.roundResolved = true;
       clearRoundTimer();
       updateScore();
+      speakScore();
       $(SELECTORS.attemptsInfo).textContent = "";
       resolveRound();
     }

@@ -72,16 +72,16 @@ body {
   box-shadow: 0 18px 40px rgba(10, 60, 90, .12);
 }
 
-/* score superpuesto sobre el acuario */
+/* score superpuesto sobre el acuario (inline, no flex: el espacio en blanco
+   entre «PUNTOS» y la cifra debe existir para que el lector de pantalla lea
+   bien el signo menos de las puntuaciones negativas) */
 .aquarium-score {
   position: absolute;
   top: 10px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 2;
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+  white-space: nowrap;
   pointer-events: none;
 }
 .aquarium-score .label {
@@ -91,6 +91,7 @@ body {
   font-weight: 700;
 }
 #pecera-score {
+  margin-left: 0.6em;   /* sustituye el gap del flex anterior */
   font-size: clamp(28px, 6vh, 46px);
   font-weight: 800;
   color: #0d5f8c;
