@@ -198,13 +198,6 @@ function updateScore(announce = false) {
   checkGameOver();
 }
 
-// tras cada variación de puntuación se dicta el total ("Tienes X", sin
-// repetir "puntos": ya lo dijo el mensaje anterior); se encola después del
-// mensaje que la provocó, sin interrumpirlo
-function speakScore() {
-  speak(`Tienes ${STATE.score}`);
-}
-
 function updateBest() {
   $(SELECTORS.best).textContent = bestForLevel(STATE.level);
 }
@@ -262,9 +255,8 @@ function startCountdown() {
     }
     if (STATE.secondsLeft <= 0) {
       STATE.score -= 1;
-      speak("Menos 1 punto", true);
+      speak(`Menos 1 punto. Tienes ${STATE.score}`, true);
       updateScore();
-      speakScore();
       STATE.secondsLeft = ROUND_SECONDS;
     }
   }, 1000);
@@ -542,8 +534,10 @@ function passWord() {
   $(SELECTORS.guessInput).disabled = true;
   $(SELECTORS.guessSubmit).disabled = true;
   $(SELECTORS.attemptsInfo).textContent = "";
-  speak(`Pasapalabra. La palabra era ${STATE.currentWord}. Menos ${lettersCount} puntos`, true);
-  speakScore();
+  speak(
+    `Pasapalabra. La palabra era ${STATE.currentWord}. Menos ${lettersCount} puntos. Tienes ${STATE.score}`,
+    true
+  );
   resolveRound();
 }
 
@@ -652,9 +646,9 @@ function buyLetter() {
   // y el reloj de la pecera vuelve también a cero (el tiempo lo gobierna el juego)
   PECERA.run((aq) => aq.word());
 
-  // "Letra X" y, tras una pausa, todas las letras reveladas hasta ahora
-  speak(`Letra ${revealed.slice(-1)}`, true);
-  speakScore(); // "Tienes X" en cola tras el aviso de la letra
+  // "Letra X" (y el total, en la misma frase para que nada se pierda de la
+  // cola) y, tras una pausa, todas las letras reveladas hasta ahora
+  speak(`Letra ${revealed.slice(-1)}. Tienes ${STATE.score}`, true);
   setTimeout(() => {
     speak(`Letras reveladas: ${STATE.revealedLetters.split("").join(", ")}`, true);
   }, 700);
@@ -695,15 +689,13 @@ function handleGuess() {
     $(SELECTORS.attemptsInfo).textContent = "";
     resolveRound();
     speak(
-      `Correcto. La palabra es ${STATE.currentWord}. Has ganado ${pointsEarned} puntos`,
+      `Correcto. La palabra es ${STATE.currentWord}. Has ganado ${pointsEarned} puntos. Tienes ${STATE.score}`,
       true
     );
-    speakScore();
   } else {
     STATE.score -= 1;
-    speak("Incorrecto, menos 1 punto", true);
+    speak(`Incorrecto, menos 1 punto. Tienes ${STATE.score}`, true);
     updateScore();
-    speakScore();
     PECERA.run((aq) => aq.scared());
     const remainingAttempts = STATE.maxAttempts - STATE.attempts;
     if (remainingAttempts > 0 && STATE.gameActive) {
@@ -717,14 +709,13 @@ function handleGuess() {
       feedback.textContent =
         `Fallaste. La palabra era: ${STATE.currentWord}. -1 punto`;
       $(SELECTORS.word).textContent = STATE.currentWord;
-      speak(`Fallaste. La palabra era ${STATE.currentWord}.`, true);
+      speak(`Fallaste. La palabra era ${STATE.currentWord}. Tienes ${STATE.score}`, true);
       input.disabled = true;
       $(SELECTORS.guessSubmit).disabled = true;
       input.blur(); // recoger el teclado al terminar la ronda
       STATE.roundResolved = true;
       clearRoundTimer();
       updateScore();
-      speakScore();
       $(SELECTORS.attemptsInfo).textContent = "";
       resolveRound();
     }
