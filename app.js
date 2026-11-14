@@ -138,6 +138,9 @@ function announce(text) {
 
 function speak(text, interrupt = false) {
   try {
+    // durante el dictado por voz no se habla nada: el TTS por los altavoces
+    // alimentaba el propio micrófono (sobre todo en PC)
+    if (STATE.listening) return;
     if (narrationMode() === "lector") {
       announce(text);
       return;
@@ -173,6 +176,7 @@ function unlockTTS() {
 
 function beep(freq, duration = 0.14) {
   try {
+    if (STATE.listening) return; // los pitidos también entraban por el micro
     beep.ctx = beep.ctx || new (window.AudioContext || window.webkitAudioContext)();
     const osc = beep.ctx.createOscillator();
     const gain = beep.ctx.createGain();
@@ -566,10 +570,26 @@ function setupMic() {
       rec.lang = "es-ES";
       rec.interimResults = false;
       rec.maxAlternatives = 1;
-      STATE.micRecognition = rec; // evitar que el navegador lo recoja
+      STATE.micRecognition = rec; // referencia para detenerlo si hace falta
+      // silencio de radio mientras dicta: sin TTS (speak/beep consultan
+      // STATE.listening) y sin sonido de la pecera — de lo contrario los
+      // altavoces alimentaban el propio micrófono (sobre todo en PC)
+      STATE.listening = true;
+      try { if ("speechSynthesis" in window) window.speechSynthesis.cancel(); } catch (e) { /* sin TTS */ }
+      PECERA.run((aq) => {
+        if (aq.audio && aq.audio.setMuted) aq.audio.setMuted(true);
+      });
       btn.textContent = "…";
       btn.disabled = true;
       const restore = () => {
+        STATE.listening = false; // volver a permitir voz y pitidos
+        // la pecera vuelve a sonar solo si la partida sigue en marcha (al
+        // finalizar la partida finishGame la deja silenciada)
+        if (STATE.gameActive) {
+          PECERA.run((aq) => {
+            if (aq.audio && aq.audio.setMuted) aq.audio.setMuted(false);
+          });
+        }
         btn.textContent = "Micrófono";
         // no copiar el estado del input a ciegas: si la ronda acaba de cerrarse
         // (input deshabilitado 2 s) el botón quedaría bloqueado; el estado lo
@@ -579,11 +599,16 @@ function setupMic() {
       rec.onresult = (ev) => {
         const said = (ev.results[0][0].transcript || "").trim();
         if (said) {
+          // resultado final: el reconocimiento ya se cierra; reabrir la voz
+          // ANTES del envío automático para que el feedback de la ronda
+          // ("Incorrecto...", "Correcto...") no se trague el supresor
+          STATE.listening = false;
           input.value = said; // sustituye por completo lo que hubiera
           handleGuess(); // envío automático: lo dictado se comprueba al instante
         }
       };
       rec.onerror = (ev) => {
+        STATE.listening = false; // el error corta la escucha: restaurar ya
         // TEMPORAL (diagnóstico micrófono): mostrar el error real del navegador
         const MSGS = {
           "not-allowed": "Micrófono: permiso denegado (not-allowed)",
@@ -605,8 +630,8 @@ function setupMic() {
       };
       rec.onend = restore;
       rec.start();
-      speak("Escuchando", true);
     } catch (e) {
+      STATE.listening = false;
       console.warn("Reconocimiento de voz no disponible:", e);
       btn.textContent = "Micrófono";
     }
