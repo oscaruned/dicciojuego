@@ -609,24 +609,25 @@ function setupMic() {
       };
       rec.onerror = (ev) => {
         STATE.listening = false; // el error corta la escucha: restaurar ya
-        // TEMPORAL (diagnóstico micrófono): mostrar el error real del navegador
-        const MSGS = {
-          "not-allowed": "Micrófono: permiso denegado (not-allowed)",
-          "service-not-allowed": "Micrófono: servicio no permitido (service-not-allowed)",
-          "no-speech": "Micrófono: no se oyó nada (no-speech)",
-          "audio-capture": "Micrófono: no se detectó micrófono (audio-capture)",
-          "network": "Micrófono: error de red (network)",
-          "aborted": "Micrófono: sesión abortada (aborted)",
-          "language-not-supported": "Micrófono: idioma no soportado",
+        // mensaje amable según el código del navegador (el código crudo queda
+        // solo en la consola para depuración)
+        const FRIENDLY = {
+          "not-allowed": "Micrófono no permitido. Actívalo en el candado de la barra de direcciones.",
+          "service-not-allowed": "El servicio de voz no está disponible en este navegador.",
+          "no-speech": "No te he oído. Pulsa Micrófono y habla nada más pulsar.",
+          "audio-capture": "No se detecta micrófono en este equipo.",
+          "network": "Sin conexión con el servicio de voz. Comprueba tu conexión.",
+          "aborted": "La escucha se interrumpió. Prueba otra vez.",
+          "language-not-supported": "Este navegador no soporta dictado en español.",
         };
-        const msg = MSGS[ev.error] || `Micrófono: error (${ev.error})`;
+        const msg = FRIENDLY[ev.error] || "El dictado por voz no está disponible ahora mismo.";
         const fb = $(SELECTORS.guessFeedback);
-        fb.textContent = `${msg} — código: ${ev.error}`;
+        fb.textContent = msg;
         // en Android el feedback queda bajo el teclado y TalkBack no lo anuncia:
         // repetirlo cerca del micrófono y en la región aria-live del lector
         $(SELECTORS.attemptsInfo).textContent = msg;
-        announce(`Error del micrófono. ${msg}. Código ${ev.error}`);
-        console.warn("SpeechRecognition error:", ev.error, ev);
+        announce(msg);
+        console.warn("SpeechRecognition error:", ev.error);
       };
       rec.onend = restore;
       rec.start();

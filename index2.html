@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,interactive-widget=overlays-content" />
+  <title>Pecera de palabras — DEBUG micrófono</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <!--
+    PÁGINA DE DEPURACIÓN DEL MICRÓFONO (igual que index.html pero cada
+    dictado y cada error del reconocimiento salen en un alert()).
+    El interceptor envuelve el SpeechRecognition nativo ANTES de que app.js
+    lo capture (app.js es defer; este script corre en el parseo).
+  -->
+  <script>
+    (function () {
+      "use strict";
+      var Native = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!Native) { alert("Este navegador no soporta SpeechRecognition."); return; }
+      window.SpeechRecognition = function () {
+        var rec = new Native();
+        var realResult = null, realError = null;
+        Object.defineProperty(rec, "onresult", {
+          get: function () { return realResult; },
+          set: function (fn) {
+            realResult = function (ev) {
+              var said = "(nada)";
+              try {
+                if (ev.results && ev.results[0] && ev.results[0][0]) {
+                  said = ev.results[0][0].transcript || "(vacío)";
+                }
+              } catch (e) { said = "(error leyendo el resultado: " + e.message + ")"; }
+              alert("EL MICRO HA OÍDO: \"" + said + "\"");
+              return fn.call(this, ev);
+            };
+          }
+        });
+        Object.defineProperty(rec, "onerror", {
+          get: function () { return realError; },
+          set: function (fn) {
+            realError = function (ev) {
+              alert("ERROR DEL MICRO: " + ev.error);
+              return fn.call(this, ev);
+            };
+          }
+        });
+        return rec;
+      };
+    })();
+  </script>
+  <script defer src="app.js?v=24"></script>
+</head>
+<body class="start-mode">
+  <main class="container game-side">
+    <header class="header">
+      <h1>🐟 Pecera de palabras</h1>
+    </header>
+
+    <section class="panel status">
+      <div class="stats-row">
+        <div class="score-display">Puntos: <span id="score">0</span></div>
+        <div class="best-display">Récord: <span id="best">0</span></div>
+      </div>
+    </section>
+
+    <section class="panel word-panel">
+      <label>Definición:</label>
+      <div id="definition" class="definition-box"></div>
+
+      <label>Palabra:</label>
+      <div id="word" class="word">—</div>
+    </section>
+
+    <section class="panel guess-panel">
+      <label for="guess-input">Adivina la palabra:</label>
+      <div class="guess-controls">
+        <input id="guess-input" type="text" placeholder="Escribe tu respuesta aquí" autocomplete="off">
+        <button id="btn-mic" class="btn-ghost" aria-label="Dictar la palabra por voz" title="Dictar la palabra por voz">Micrófono</button>
+        <button id="guess-submit" class="btn-primary">Probar</button>
+      </div>
+      <div class="controls">
+        <button id="btn-buy-letter" class="btn-primary">Comprar letra (-2)</button>
+        <button id="btn-pass" class="btn-ghost">Pasapalabra</button>
+        <button id="btn-finish" class="btn-danger">Finalizar partida</button>
+      </div>
+      <div id="attempts-info" class="attempts-info"></div>
+      <div id="guess-feedback" class="feedback">—</div>
+      <div id="count" class="status-line">Cargando…</div>
+    </section>
+
+    <div class="fallback">
+      <label for="file-input">Si no se carga automáticamente, selecciona aquí tu <code>train.csv</code>:</label>
+      <input id="file-input" type="file" accept=".csv,text/csv">
+    </div>
+  </main>
+
+  <div id="overlay-instructions" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Cómo se juega</h2>
+      <ul class="rules">
+        <li><strong>Palabra oculta:</strong> se muestra una palabra tapada letra a letra (<code>_ _ _</code>) junto a su definición en español. Tienes tantos intentos como letras tiene la palabra.</li>
+        <li><strong>Comprar letra</strong> (-2 puntos): revela la siguiente letra oculta y devuelve el temporizador al minuto entero.</li>
+        <li><strong>Pasapalabra</strong>: resta tantos puntos como letras tenga la palabra pedida y pasa a otra definición.</li>
+        <li><strong>Micrófono</strong>: junto a la casilla de respuesta; al pulsarlo, lo que pronuncies sustituye el contenido de la casilla y se envía automáticamente.</li>
+        <li><strong>Aciertos</strong>: si adivinas la palabra, sumas el número total de letras (una palabra de 7 letras vale +7 puntos).</li>
+        <li><strong>Errores</strong>: cada respuesta fallida resta 1 punto.</li>
+        <li><strong>Tiempo</strong>: cada minuto sin responder resta 1 punto. En los últimos 10 segundos del minuto oirás pitidos en escala ascendente.</li>
+        <li><strong>Niveles</strong>: básico, fácil, intermedio, difícil y muy difícil (desplegable junto a «Nueva partida»). Cambiar de nivel define la dificultad de la próxima partida; los récords se guardan por nivel.</li>
+        <li><strong>Arranque</strong>: al abrir la app se ve la pecera a pantalla completa; al pulsar «Nueva partida» la pecera se recoloca en 5 segundos y entonces llega la primera pregunta.</li>
+        <li><strong>Fin de partida</strong>: pulsa «Finalizar partida» cuando quieras o termina automáticamente si llegas a −20 puntos.</li>
+        <li><strong>Récords</strong>: en cada nivel se guarda tu mejor puntuación de todas las partidas que hayas jugado en ese nivel.</li>
+        <li><strong>Voz</strong>: la app narra definiciones, letras compradas y resultados (TTS en español). Si usas TalkBack u otro lector de pantalla, cambia el botón «Narración» a <em>lector de pantalla</em>: así la app deja de hablar por su cuenta y todos los avisos los dirá tu lector, sin pelearse por la voz.</li>
+      </ul>
+      <button id="btn-close-instructions" class="btn-primary btn-big">Continuar</button>
+    </div>
+  </div>
+
+  <div id="overlay-result" class="overlay hidden" role="dialog" aria-modal="true">
+    <div class="dialog">
+      <h2>Partida finalizada</h2>
+      <div id="result-body"></div>
+    </div>
+  </div>
+
+  <!-- barra de opciones y Nueva partida: visible en el arranque y en el
+       fin de partida; la dificultad se define antes de una partida nueva -->
+  <div id="start-bar" class="start-bar">
+    <button id="btn-new-game" class="btn-primary">Nueva partida</button>
+    <label for="level-select">Nivel:</label>
+    <select id="level-select" aria-label="Nivel de dificultad">
+      <option value="1">Básico</option>
+      <option value="2">Fácil</option>
+      <option value="3">Intermedio</option>
+      <option value="4">Difícil</option>
+      <option value="5">Muy difícil</option>
+    </select>
+    <button id="btn-instructions" class="btn-ghost">Instrucciones</button>
+    <button id="btn-narration" class="btn-ghost" aria-label="Modo de narración de la app">Narración: voz de la app</button>
+  </div>
+
+  <!-- región oculta para lectores de pantalla (TalkBack, VoiceOver…):
+       recibe los mismos avisos que el TTS de la app -->
+  <div id="sr-announcer" class="sr-only" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+  <!-- zona derecha (apaisado) o inferior (vertical): marcador de acuario -->
+  <section id="pecera-slot" class="pecera-slot" aria-label="Marcador de acuario">
+    <div class="aquarium-score"><span class="label">PUNTOS</span> <span id="pecera-score">0</span></div>
+    <div id="aquarium-root" class="aquarium-root"></div>
+  </section>
+
+  <script type="module" src="pecera/integracion.js?v=2"></script>
+</body>
+</html>
