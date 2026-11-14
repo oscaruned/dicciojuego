@@ -44,6 +44,27 @@
             };
           }
         });
+        // trazas del ciclo de vida: dónde se detiene la sesión
+        rec.onstart = function () { alert("onstart: empieza a escuchar"); };
+        rec.onaudiostart = function () { alert("onaudiostart: audio del micro activado"); };
+        rec.onspeechstart = function () { alert("onspeechstart: detectada voz"); };
+        rec.onspeechend = function () { alert("onspeechend: la voz se detuvo"); };
+        rec.onend = function () {
+          alert("onend: sesión de escucha terminada");
+          if (typeof realResult === "function" || true) { /* onend del juego no interceptado aquí */ }
+        };
+        // vigilar start(): si lanza excepción, que salga en un alert
+        var origStart = rec.start.bind(rec);
+        rec.start = function () {
+          alert("start(): abriendo el micrófono…");
+          try {
+            origStart();
+            alert("start() devolvió OK (sin excepción)");
+          } catch (e) {
+            alert("start() LANZÓ EXCEPCIÓN: " + e.name + " — " + e.message);
+            throw e; // el juego la trae en su catch de siempre
+          }
+        };
         return rec;
       };
     })();
